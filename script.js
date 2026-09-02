@@ -7,7 +7,7 @@ canvas.height = 800;
 const SIZE = 75;
 const SQRT3 = Math.sqrt(3);
 
-// --- Recursos con sus colores y nombres (se guarda una copia para reiniciar) ---
+// --- Recursos y colores (se guarda copia original para reinicio) ---
 const RESOURCES = {
     wood: { color: '#2E8B57', name: 'Bosque' },
     wheat: { color: '#FFD700', name: 'Campo' },
@@ -17,13 +17,13 @@ const RESOURCES = {
     desert: { color: '#F4E4C1', name: 'Desierto' }
 };
 
-// Guardamos los colores originales para el reinicio
+// Guardamos colores originales para reinicio
 const DEFAULT_COLORS = {};
 for (const key in RESOURCES) {
     DEFAULT_COLORS[key] = RESOURCES[key].color;
 }
 
-// --- Datos del tablero estándar (se guarda una copia para reiniciar) ---
+// --- Datos del tablero original (se usará para reiniciar) ---
 const DEFAULT_HEXAGONS = [
     { q: 0, r: -2, resource: 'wood', number: 10 },
     { q: 1, r: -2, resource: 'wheat', number: 2 },
@@ -46,7 +46,7 @@ const DEFAULT_HEXAGONS = [
     { q: 0, r: 2, resource: 'wheat', number: 5 }
 ];
 
-// Copia profunda de los hexágonos iniciales
+// Estado actual del tablero
 let hexagons = JSON.parse(JSON.stringify(DEFAULT_HEXAGONS));
 
 // --- Conversión de coordenadas ---
@@ -57,7 +57,7 @@ function axialToPixel(q, r) {
     };
 }
 
-// --- Centrar el tablero en el canvas ---
+// --- Centrar el tablero ---
 let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
 hexagons.forEach(h => {
     const { px, py } = axialToPixel(h.q, h.r);
@@ -149,7 +149,7 @@ function drawHex(hex) {
     }
 }
 
-// --- Dibujar todo el tablero ---
+// --- Dibujar todo ---
 function drawBoard() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     hexagons.forEach(h => drawHex(h));
@@ -168,7 +168,17 @@ function isPointInHex(px, py, vertices) {
     return inside;
 }
 
-// --- Evento de clic para cambiar números ---
+// --- Obtener el hexágono en una posición (mouse) ---
+function getHexAt(mx, my) {
+    for (let hex of hexagons) {
+        if (isPointInHex(mx, my, hex.vertices)) {
+            return hex;
+        }
+    }
+    return null;
+}
+
+// --- Evento: Clic izquierdo → cambiar número ---
 canvas.addEventListener('click', (e) => {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
@@ -176,33 +186,91 @@ canvas.addEventListener('click', (e) => {
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
 
-    for (let hex of hexagons) {
-        if (isPointInHex(mouseX, mouseY, hex.vertices)) {
-            if (hex.resource === 'desert') {
-                alert('El desierto no tiene número.');
-                return;
-            }
+    const hex = getHexAt(mouseX, mouseY);
+    if (!hex) return;
 
-            const currentNumber = hex.number;
-            const newNumber = prompt(
-                `Ingresa un número del 2 al 12 para el ${RESOURCES[hex.resource].name}:`,
-                currentNumber
-            );
+    if (hex.resource === 'desert') {
+        alert('El desierto no tiene número.');
+        return;
+    }
 
-            if (newNumber === null) return;
-            const num = parseInt(newNumber);
-            if (!isNaN(num) && num >= 2 && num <= 12 && num !== 7) {
-                hex.number = num;
-                drawBoard();
-            } else {
-                alert('❌ Número inválido. Debe ser del 2 al 12, excluyendo el 7.');
-            }
-            return;
-        }
+    const currentNumber = hex.number;
+    const newNumber = prompt(
+        `Ingresa un número del 2 al 12 para el ${RESOURCES[hex.resource].name}:`,
+        currentNumber
+    );
+    if (newNumber === null) return;
+    const num = parseInt(newNumber);
+    if (!isNaN(num) && num >= 2 && num <= 12 && num !== 7) {
+        hex.number = num;
+        drawBoard();
+    } else {
+        alert('❌ Número inválido. Debe ser del 2 al 12, excluyendo el 7.');
     }
 });
 
-// --- Generar la leyenda dinámica con selectores de color ---
+// --- Evento: Clic derecho → cambiar recurso ---
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); // Evitar menú contextual del navegador
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+
+    const hex = getHexAt(mouseX, mouseY);
+    if (!hex) return;
+
+    // Mostrar opciones de recursos (usamos prompt con números)
+    const options = Object.keys(RESOURCES).map((key, idx) => 
+        `${idx+1}. ${RESOURCES[key].name}`
+    ).join('\n');
+    
+    const choice = prompt(
+        `Elige el nuevo recurso para este hexágono:\n${options}\n\n(Introduce el número)`,
+        '1'
+    );
+    if (choice === null) return;
+
+    const idx = parseInt(choice) - 1;
+    const keys = Object.keys(RESOURCES);
+    if (isNaN(idx) || idx < 0 || idx >= keys.length) {
+        alert('❌ Opción inválida.');
+        return;
+    }
+
+    const newResource = keys[idx];
+    const oldResource = hex.resource;
+
+    // Si el nuevo recurso es desierto, eliminar número
+    if (newResource === 'desert') {
+        hex.number = null;
+    } else {
+        // Si antes era desierto y ahora no, pedir un número
+        if (oldResource === 'desert' || hex.number === null) {
+            const numPrompt = prompt(
+                `Ingresa un número del 2 al 12 para el nuevo ${RESOURCES[newResource].name}:`,
+                '8'
+            );
+            if (numPrompt === null) return; // cancela, no cambia
+            const num = parseInt(numPrompt);
+            if (!isNaN(num) && num >= 2 && num <= 12 && num !== 7) {
+                hex.number = num;
+            } else {
+                alert('❌ Número inválido. No se cambiará el recurso.');
+                return;
+            }
+        }
+        // Si ya tenía número, lo conservamos
+    }
+
+    // Cambiar el recurso
+    hex.resource = newResource;
+    drawBoard();
+});
+
+// --- Generar la leyenda con selectores de color ---
 function updateLegend() {
     const container = document.getElementById('legendContainer');
     container.innerHTML = '';
@@ -211,20 +279,17 @@ function updateLegend() {
         const item = document.createElement('div');
         item.className = 'legend-item';
 
-        // Selector de color
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
         colorInput.value = value.color;
         colorInput.dataset.resource = key;
 
-        // Evento para cambiar el color en tiempo real
         colorInput.addEventListener('input', (e) => {
             const resourceKey = e.target.dataset.resource;
             RESOURCES[resourceKey].color = e.target.value;
-            drawBoard(); // Redibujar al instante
+            drawBoard();
         });
 
-        // Nombre del recurso
         const nameSpan = document.createElement('span');
         nameSpan.textContent = value.name;
 
@@ -234,28 +299,26 @@ function updateLegend() {
     }
 }
 
-// --- Función para reiniciar el tablero ---
+// --- Reiniciar completamente el tablero ---
 function resetBoard() {
-    // 1. Restaurar los números de los hexágonos
+    // 1. Restaurar recursos y números originales
     hexagons = JSON.parse(JSON.stringify(DEFAULT_HEXAGONS));
-    // Recalcular coordenadas de los nuevos hexágonos
     hexagons.forEach(h => calculateHexCoords(h));
 
-    // 2. Restaurar los colores originales
+    // 2. Restaurar colores originales
     for (const key in DEFAULT_COLORS) {
         RESOURCES[key].color = DEFAULT_COLORS[key];
     }
 
-    // 3. Actualizar la leyenda para que los selectores muestren los colores originales
+    // 3. Actualizar la leyenda visual
     updateLegend();
 
-    // 4. Redibujar el tablero
+    // 4. Redibujar
     drawBoard();
 }
 
-// --- Asignar evento al botón de reinicio ---
 document.getElementById('resetButton').addEventListener('click', resetBoard);
 
-// --- Inicializar todo ---
+// --- Inicializar ---
 updateLegend();
 drawBoard();
