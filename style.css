@@ -34,7 +34,6 @@ h1 {
     font-size: 15px;
 }
 
-/* Leyenda con los selectores de color */
 .legend {
     display: flex;
     justify-content: center;
@@ -72,7 +71,6 @@ h1 {
     border-radius: 4px;
 }
 
-/* Botón de reinicio */
 .btn-reset {
     background: #e67e22;
     color: white;
