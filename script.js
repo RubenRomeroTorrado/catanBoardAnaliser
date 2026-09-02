@@ -10,7 +10,7 @@ const SQRT3 = Math.sqrt(3);
 // --- Recursos y colores (se guarda copia original para reinicio) ---
 const RESOURCES = {
     wood: { color: '#2E8B57', name: 'Bosque' },
-    wheat: { color: '#FFD700', name: 'Campo' },
+    wheat: { color: '#FFD700', name: 'Trigo' },
     sheep: { color: '#90EE90', name: 'Pasto' },
     brick: { color: '#CD5C5C', name: 'Arcilla' },
     ore: { color: '#696969', name: 'Montaña' },
