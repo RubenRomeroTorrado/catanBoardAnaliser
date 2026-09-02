@@ -11,14 +11,11 @@
         <h1>🗺️ Tablero de Catan</h1>
         <p>Haz clic en un hexágono para asignarle un número del 2 al 12 (el 7 no se usa).</p>
         
-        <div class="legend">
-            <span><span class="color-box" style="background:#2E8B57;"></span> Bosque</span>
-            <span><span class="color-box" style="background:#FFD700;"></span> Campo</span>
-            <span><span class="color-box" style="background:#90EE90;"></span> Pasto</span>
-            <span><span class="color-box" style="background:#CD5C5C;"></span> Arcilla</span>
-            <span><span class="color-box" style="background:#696969;"></span> Montaña</span>
-            <span><span class="color-box" style="background:#F4E4C1;"></span> Desierto</span>
-        </div>
+        <!-- Leyenda dinámica donde aparecerán los selectores de color -->
+        <div class="legend" id="legendContainer"></div>
+
+        <!-- Botón para reiniciar -->
+        <button id="resetButton" class="btn-reset">🔄 Reiniciar Tablero</button>
 
         <canvas id="boardCanvas"></canvas>
     </div>
